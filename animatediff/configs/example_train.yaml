@@ -1,0 +1,105 @@
+output_dir: <output_ckpt_dir>
+pretrained_model_path: <sd1.5_path>
+motion_module_path: <AnimateDiff_path>/Motion_Module/v3_sd15_mm.ckpt
+use_ip_adapter: False
+ip_ckpt: <IP-Adapter_path>/ip-adapter-plus_sd15.bin
+image_encoder_path: <CLIP_image_encoder_path>/image_encoder
+
+# initializer_token: "waterfall"
+# word_to_learn: "waterfall_new"
+
+unet_additional_kwargs:
+  use_motion_module              : true
+  motion_module_resolutions      : [ 1,2,4,8 ]
+  unet_use_cross_frame_attention : false
+  unet_use_temporal_attention    : true
+
+  use_i2v_q_lora : False # enable SA LoRAs (switched off)
+  use_i2v_out_lora : False
+  i2v_lora_rank : 32
+  i2v_lora_scale : 1
+
+  use_ca_lora: true # enable CA loras (switched on)
+  ca_lora_rank: 32
+  ca_lora_scale: 1
+
+  q_downsample: True # spatiotemporal CA
+  q_downsample_ratio: 1
+  ca_pe_mode: rope_3d # pe
+
+  motion_module_type: Vanilla
+  motion_module_kwargs:
+    num_attention_heads                : 8
+    num_transformer_block              : 1
+    attention_block_types              : [ "Temporal_Self", "Temporal_Self" ]
+    temporal_position_encoding         : true
+    temporal_position_encoding_max_len : 32
+    temporal_attention_dim_div         : 1
+    zero_initialize                    : true
+    lora_rank: 32
+    lora_scale: 1
+
+noise_scheduler_kwargs:
+  num_train_timesteps: 1000
+  beta_start:          0.00085
+  beta_end:            0.012
+  beta_schedule:       "scaled_linear"
+  steps_offset:        1
+  clip_sample:         false
+  # rescale_betas_zero_snr: true
+
+train_data:
+  video_root: "<LAMP_dataset_root>/waterfall"
+  prompt: "waterfall"
+  n_sample_frames: 16
+  width: 512
+  height: 320
+  sample_start_idx: 0
+  sample_frame_rate: 4
+
+validation_data:
+  image_path: "<LAMP_benchmark_root>/waterfall"
+  prompt_path:
+    - "waterfall_and_a_Ferrari"
+    - "winter_waterfall"
+  prompts:
+    - "waterfall"
+    - "waterfall"
+  video_length: 16
+  width: 512
+  height: 320
+  num_inference_steps: 50
+  guidance_scale: 1
+  use_inv_latent: False
+  num_inv_steps: 50
+  # word_to_replace: "waterfall"
+
+
+unet_checkpoint_path: ""
+
+learning_rate:    1.e-5
+train_batch_size: 1
+
+max_train_epoch:      -1
+max_train_steps:      30000
+checkpointing_epochs: -1
+checkpointing_steps:  10000
+
+trainable_modules:
+  # - "i2v_adapter.to_q"
+  - "i2v_adapter.to_out"
+  - "to_q_lora"
+  - "to_k_lora"
+  - "to_v_lora"
+  - "to_out_lora"
+
+validation_steps:       1000
+validation_steps_tuple: [20]
+
+global_seed: 42
+mixed_precision_training: true
+enable_xformers_memory_efficient_attention: False
+use_8bit_adam: True
+
+is_debug: False
+image_finetune: false
